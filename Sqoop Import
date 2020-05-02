@@ -1,0 +1,186 @@
+sqoop list-databases --connect jdbc:mysql://quickstart.cloudera --username retail_dba --password cloudera;
+
+sqoop list-tables --connect jdbc:mysql://quickstart.cloudera/retail_db --username retail_dba --password cloudera;
+
+sqoop eval --connect jdbc:mysql://quickstart.cloudera/retail_db -e "select * from orders LIMIT 10" --username retail_dba --password cloudera;
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--table order_items \
+--warehouse-dir /user/cloudera/sqoop_import/retail_db/ \
+--num-mappers 1;
+
+Specify Columns with tables
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--table order_items \
+--columns order_item_id,order_id \
+--warehouse-dir /user/cloudera/sqoop_import/retail_db/ \
+-m 2;
+
+
+
+# If directory s present: --delete-target-dir
+# If directory s present: --append
+
+#No Primary Key
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--table order_items_nopk \
+--warehouse-dir /user/cloudera/sqoop_import/retail_db/ \
+--num-mappers 4;
+
+#If no Primary Key is present:
+use -m 1 or --split-by
+
+/*Col should be indexed :- for finding min and max volume....to save time (Performance reasons)
+
+Col should have sparse values (as many records as possible)
+
+Col should optimally be sequence generated OR even incremented
+
+Col should not have NULL values.
+If there are NULL values: these will be ignored.*/
+
+Use Split By for Words: 
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--table orders \
+--warehouse-dir /user/cloudera/sqoop_import/retail_db/ \
+--split-by order_status;
+
+
+
+Autoreset mappers :
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--table order_items_nopk \
+--warehouse-dir /user/cloudera/sqoop_import/retail_db/ \
+--num-mappers 4 \
+--autoreset-to-one-mapper;
+
+Data File types
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--table order_items \
+--warehouse-dir /user/cloudera/sqoop_import/retail_db/ \
+-m 2 \
+--as-avrodatafile; 
+#--as-sequencefile
+#--as-parquetfile
+
+
+Boundary Values Editing
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--table order_items \
+--warehouse-dir /user/cloudera/sqoop_import/retail_db/ \
+-m 2 \
+--boundary-query 'select min(order_item_id),max(order_item_id) from order_items where order_item_id>99999;
+
+Delimiter and Managing NULL
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/hr_db \
+--username root \
+--password cloudera \
+--table employees \
+--warehouse-dir /user/cloudera/sqoop_import/hr/ \
+--num-mappers 2 \
+--null-non-string -1 \
+--mysql-delimiters;
+
+Query
+Ex. To get all the data in 2013 year.
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--target-dir /user/cloudera/sqoop_import/retail_db/orders \
+-m 2 \
+--query "select * from orders where \$CONDITIONS and order_date like '2013-%'" \
+--split-by order_id;
+
+#'2014-01%' for all data in JAN 2014
+
+Using Table and Where clause instead of Query - no need of --split-by
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--warehouse-dir /user/cloudera/sqoop_import/retail_db \
+-m 2 \
+--table orders \
+--where "order_date like '2014-02%'" \
+--append;
+
+But we have Sqoop specific, why not --query 
+Because, we dont know the past data. - need of eval all the time.
+
+Check Column option
+
+# --check-column(col) - Returns info of the field that needs incremental update.
+
+# --incremental(mode) - mode - append and lastmodified
+
+# --last-value(value) - for append - value=last column value
+for lastmodified - value=most recent date
+
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--warehouse-dir /user/cloudera/sqoop_import/retail_db \
+-m 2 \
+--table orders \
+--check-column order_date \
+--incremental append \
+--last-value '2014-02-28' ;
+
+
+For automation - Create a sqoop job
+
+sqoop job --create myJob \
+-import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera;
+
+
+DOnt lknow why it fails
+
+
+SqoopImport ALL tables
+ Limit - Cannot - Incremental Import, --query, --where...etc
+ Note. For NO PK table - we need m=1
+
+sqoop import-all-tables \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--warehouse-dir /user/cloudera/sqoop_import/retail_db/ \
+--num-mappers 2 \
+--autoreset-to-one-mapper;

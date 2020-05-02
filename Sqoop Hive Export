@@ -1,0 +1,147 @@
+Sqoop Export
+
+In hive, 1st general step is to AUTOMATE data processing.
+
+Ex. We have to create a table in MySQL first.
+
+create table daily_revenue AS 
+select order_date, sum(order_item_subtotal) Daily_Revenue from orders join order_items on 
+order_id=order_item_order_id
+where order_date like '2013-07%'
+group by order_date;
+
+Now to export from Hive:
+
+sqoop export \
+--connect jdbc:mysql://quickstart.cloudera:3306/retail_export \
+--username root \
+--password cloudera \
+--table daily_revenue \
+--export-dir hdfs://quickstart.cloudera:8020/user/hive/warehouse/retail_db.db/daily_revenue \
+--input-fields-terminated-by "\001" \
+-m 1;
+
+Note: "\001" is ^A
+
+use --num-mappers to have greater control.
+
+Column Mapping
+
+Ex. Create another table in MYSQL
+
+create table daily_revenue_demo(revenue float, order_Date varchar(30), description varchar(300));
+
+Now running this command:
+sqoop export \
+--connect jdbc:mysql://quickstart.cloudera:3306/retail_export \
+--username root \
+--password cloudera \
+--table daily_revenue_demo \
+--export-dir hdfs://quickstart.cloudera:8020/user/hive/warehouse/retail_db.db/daily_revenue \
+--input-fields-terminated-by "\001";
+
+THIS WILL GIVE "COUNTER MISSING ERROR" as columns dont match.
+
+Use this to pass it:
+
+sqoop export \
+--connect jdbc:mysql://quickstart.cloudera:3306/retail_export \
+--username root \
+--password cloudera \
+--table daily_revenue_demo \
+--export-dir hdfs://quickstart.cloudera:8020/user/hive/warehouse/retail_db.db/daily_revenue \
+--input-fields-terminated-by "\001" \
+--columns order_Date,revenue;
+
+//note in HDFS, files are stored as Order_Date, Revenue
+
+#Update Fields
+
+create table daily_revenue(rorder_date varchar(30) primary key, revenue float);
+Now, doing it once: SUCCESS
+
+sqoop export \
+--connect jdbc:mysql://quickstart.cloudera:3306/retail_export \
+--username root \
+--password cloudera \
+--table daily_revenue \
+--export-dir hdfs://quickstart.cloudera:8020/user/hive/warehouse/retail_db.db/daily_revenue \
+--input-fields-terminated-by "\001";
+-m 1;
+
+Doing it twice: FAIL with error Error During Export - (Inside logs in job tracker - Duplicate entry for PK)
+
+TO do this, we need to specify a column that will be used to find unique values for whole row to be copied.
+
+sqoop export \
+--connect jdbc:mysql://quickstart.cloudera:3306/retail_export \
+--username root \
+--password cloudera \
+--table daily_revenue \
+--update-key order_date \
+--export-dir hdfs://quickstart.cloudera:8020/user/hive/warehouse/retail_db.db/daily_revenue \
+--input-fields-terminated-by "\001" \
+-m 1;
+
+By Default: --update-mode=updateonly i.e the records already present in MYSQL will be updated! - No new records will be copied
+
+To copy new records too: --update-mode=allowinsert
+
+#STAGE TABLES
+
+In hive:
+Truncate table first and then: 
+
+insert into daily_revenue 
+select order_date, sum(order_item_subtotal) Daily_Revenue from orders join order_items on 
+order_id=order_item_order_id
+group by order_date;
+
+In MYSQL,
+Trucate tables, and then:
+
+insert into daily_revenue values("2014-0701 00:00:00.0",0);
+
+Now trying to export: 
+sqoop export \
+--connect jdbc:mysql://quickstart.cloudera:3306/retail_export \
+--username root \
+--password cloudera \
+--table daily_revenue \
+--export-dir hdfs://quickstart.cloudera:8020/user/hive/warehouse/retail_db.db/daily_revenue \
+--input-fields-terminated-by "\001";
+
+THIS WILL FAIL!!
+
+Note TRUNCATE THE TABLE
+
+So we will create a STAGING TABLE in MYSQL to be an intermediate table.
+
+create table daily_revenue_stage(order_date varchar(30) primary key,revenue float);
+ Now we do the same thing:
+
+ insert into daily_revenue_stage values("2014-0701 00:00:00.0",0);
+
+ Now if we try to export w/
+
+ sqoop export \
+--connect jdbc:mysql://quickstart.cloudera:3306/retail_export \
+--username root \
+--password cloudera \
+--table daily_revenue \
+--staging-table daily_revenue_stage \
+--clear-staging-table \
+--export-dir hdfs://quickstart.cloudera:8020/user/hive/warehouse/retail_db.db/daily_revenue \
+--input-fields-terminated-by "\001";
+
+Few notes: 
+
+1. Staging table should always be empty before exporting!
+2. If anyting fails in HIVE to STAGING table export, NO HARM WILL BE DONE TO ACTUAL TABLE
+3. IF it passes, then data will be imported from staging table to final table;
+4. If everything is done successfully, Staging table will be automatically truncated!
+
+THIS Keeps the target table in CONSISTENT STAGE!
+
+
+FINISH!!

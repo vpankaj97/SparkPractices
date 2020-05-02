@@ -1,0 +1,40 @@
+Hive Import w/ Append
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--table order_items \
+--hive-import \
+--hive-database retail_db \
+--hive-table order_items \
+--num-mappers 2;
+
+Hive Import w/o Append
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--table order_items \
+--hive-import \
+--hive-database retail_db \
+--hive-table order_items \
+--hive-overwrite \
+--num-mappers 2;
+
+Hive Import Fail if Table Exists
+
+sqoop import \
+--connect jdbc:mysql://quickstart.cloudera/retail_db \
+--username retail_dba \
+--password cloudera \
+--table order_items \
+--hive-import \
+--hive-database retail_db \
+--hive-table order_items \
+--create-hive-table \
+--num-mappers 2;
+
+
+
