@@ -73,6 +73,8 @@
 	},
 	"file_history":
 	[
+		"/D/Windows/Documents/GitHub/Data Science/Python4Maths/New Text Document.txt",
+		"/D/Windows/Documents/GitHub/Hadoop/trial.txt",
 		"/G/xTras/softWARES/IDE and Stuff/Sublime Text Editor 3/Keys.txt",
 		"/G/xTras/softWARES/Important/Avast/Avast KEy.txt",
 		"/G/xTras/softWARES/xTras/Batch Renaming Extensions.txt",
@@ -202,7 +204,7 @@
 							"syntax": "Packages/Text/Plain text.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 1431.8490566,
+						"translation.y": 494.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
